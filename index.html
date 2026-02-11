@@ -4,88 +4,95 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Unblocked Games Proxy</title>
+    <!-- Standard UV-Static bundle paths – adjust if your fork uses different folder -->
     <script src="/uv/uv.bundle.js"></script>
     <script src="/uv/uv.config.js"></script>
     <style>
-        body { font-family: system-ui, sans-serif; background: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
-        header { text-align: center; margin: 0 0 30px; }
-        h1 { margin: 0; }
-        input { width: 60%; max-width: 700px; padding: 12px; font-size: 16px; border: 1px solid #30363d; border-radius: 6px; background: #0d1117; color: #c9d1d9; }
-        button { padding: 12px 24px; font-size: 16px; margin-left: 10px; border-radius: 6px; background: #238636; color: white; border: none; cursor: pointer; }
-        button:hover { background: #2ea043; }
-        .games { margin-top: 40px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
-        .card { background: #161b22; padding: 20px; border-radius: 8px; text-align: center; cursor: pointer; transition: 0.2s; }
-        .card:hover { background: #21262d; transform: translateY(-4px); }
-        #frame { width: 100%; height: 80vh; border: none; display: none; margin-top: 30px; background: black; }
+        body { font-family: Arial, sans-serif; background: #0f0f23; color: #e0e0ff; margin: 0; padding: 20px; }
+        header { text-align: center; margin-bottom: 30px; }
+        input { width: 65%; padding: 12px; font-size: 17px; border: 1px solid #444; border-radius: 6px; background: #1a1a3d; color: white; }
+        button { padding: 12px 28px; font-size: 17px; margin-left: 10px; background: #4d4dff; color: white; border: none; border-radius: 6px; cursor: pointer; }
+        button:hover { background: #6666ff; }
+        .games-section { margin-top: 40px; }
+        .games-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; }
+        .game { background: #1e1e40; padding: 18px; border-radius: 10px; text-align: center; cursor: pointer; transition: 0.15s; }
+        .game:hover { background: #2a2a55; transform: scale(1.04); }
+        #proxy-iframe { width: 100%; height: 80vh; border: none; display: none; margin-top: 30px; background: #000; }
     </style>
 </head>
 <body>
     <header>
-        <h1>Unblocked Games + Proxy</h1>
-        <p>Enter URL/search or click a game below.</p>
-        <input id="input" placeholder="https://example.com or search term" autofocus>
-        <button id="launch">Launch</button>
+        <h1>Unblocked Games with Proxy</h1>
+        <p>Search any URL or pick a game below.</p>
+        <input id="url-input" placeholder="https://example.com or search terms" autofocus>
+        <button id="go-btn">Go</button>
     </header>
 
-    <section class="games">
+    <section class="games-section">
         <h2>Games</h2>
-        <div class="grid" id="games-grid"></div>
+        <div class="games-grid" id="games"></div>
     </section>
 
-    <iframe id="frame"></iframe>
+    <iframe id="proxy-iframe"></iframe>
 
     <script>
+        // Load handler – wait for UV to be ready
         window.addEventListener('load', () => {
             if (typeof __uv$config === 'undefined') {
-                alert("UV files missing – make sure /uv/ folder has uv.bundle.js, uv.config.js, etc.");
+                console.error('UV config failed to load – check if /uv/uv.config.js and /uv/uv.bundle.js exist in repo.');
+                alert('Proxy files missing (404 errors). Switch to a fork with uv.bundle.js in /uv/ folder.');
                 return;
             }
 
-            const { prefix, encodeUrl } = __uv$config;
+            const config = __uv$config;
+            const prefix = config.prefix;
+            const encode = config.encodeUrl;
 
-            // Launch button
-            document.getElementById('launch').onclick = () => {
-                let val = document.getElementById('input').value.trim();
-                if (!val) return;
-                if (!val.match(/^https?:\/\//)) {
-                    if (val.includes('.')) val = 'https://' + val;
-                    else val = 'https://www.google.com/search?q=' + encodeURIComponent(val);
+            // Go button
+            document.getElementById('go-btn').onclick = () => {
+                let input = document.getElementById('url-input').value.trim();
+                if (!input) return;
+
+                let url = input;
+                if (!url.startsWith('http')) {
+                    if (url.includes('.')) url = 'https://' + url;
+                    else url = 'https://www.google.com/search?q=' + encodeURIComponent(input);
                 }
-                loadProxied(val);
+                loadViaProxy(url);
             };
 
-            // Games list – edit here to add/remove
-            const games = [
+            // Games – add/edit here anytime
+            const gameList = [
                 { name: 'Slope', url: 'https://www.slope.game/' },
                 { name: 'Retro Bowl', url: 'https://www.retrobowlgame.io/' },
                 { name: '1v1.LOL', url: 'https://1v1.lol/' },
                 { name: 'Cookie Clicker', url: 'https://orteil.dashnet.org/cookieclicker/' },
-                { name: 'Krunker.io', url: 'https://krunker.io/' },
-                // Add: { name: 'Game', url: 'https://...' },
+                { name: 'Krunker', url: 'https://krunker.io/' },
             ];
 
-            const grid = document.getElementById('games-grid');
-            games.forEach(game => {
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.textContent = game.name;
-                card.onclick = () => loadProxied(game.url);
-                grid.appendChild(card);
+            const container = document.getElementById('games');
+            gameList.forEach(g => {
+                const el = document.createElement('div');
+                el.className = 'game';
+                el.textContent = g.name;
+                el.onclick = () => loadViaProxy(g.url);
+                container.appendChild(el);
             });
 
-            function loadProxied(url) {
-                const proxied = prefix + encodeUrl(url);
-                const frame = document.getElementById('frame');
-                frame.src = proxied;
-                frame.style.display = 'block';
-                window.scrollTo(0, frame.offsetTop);
+            function loadViaProxy(targetUrl) {
+                const proxied = prefix + encode(targetUrl);
+                const iframe = document.getElementById('proxy-iframe');
+                iframe.src = proxied;
+                iframe.style.display = 'block';
+                iframe.scrollIntoView({ behavior: 'smooth' });
             }
 
-            // Service Worker
+            // Register SW
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/uv/uv.sw.js', { scope: __uv$config.prefix || '/service/' })
-                    .catch(err => console.error('SW error:', err));
+                const swPath = '/uv/uv.sw.js';  // or '/uv/sw.js' if your fork uses that name
+                navigator.serviceWorker.register(swPath, { scope: prefix || '/service/' })
+                    .then(() => console.log('Proxy SW registered'))
+                    .catch(e => console.error('SW failed:', e));
             }
         });
     </script>
